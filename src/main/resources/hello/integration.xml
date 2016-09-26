@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:file="http://www.springframework.org/schema/integration/file"
+	xmlns:feed="http://www.springframework.org/schema/integration/feed"
+	xmlns:http="http://www.springframework.org/schema/integration/http"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/integration/feed http://www.springframework.org/schema/integration/feed/spring-integration-feed.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/http http://www.springframework.org/schema/integration/http/spring-integration-http.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		 http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+	<int:gateway id="firstGatewayID" service-interface="services.api.GatewayService"
+		default-request-channel="pubsubChannel" default-request-timeout="5000"
+		default-reply-timeout="5000">
+		<int:method name="getPerson">
+			<int:header name="REQUEST_TYPE" value="getPerson" />
+		</int:method>
+	</int:gateway>
+
+	<int:publish-subscribe-channel id="pubsubChannel" />
+	
+	<!-- Define header with all the necessary mapping -->
+	<int:header-value-router input-channel="pubsubChannel"
+		header-name="REQUEST_TYPE">
+		<int:mapping value="getPerson" channel="getPersonChannel" />
+	</int:header-value-router>
+
+	<int:channel id="getPersonChannel" />
+	<int:channel id="getPersonChannel_with_header" />
+	<int:channel id="getPersonChannel_response" />
+
+	<!--outbound gateway to get data from url -->
+	<http:outbound-gateway id="getPersonGateway"
+							url="http://localhost:8080/person"
+							request-channel="getPersonChannel" 
+							reply-channel="getPersonChannel_response"
+							http-method="GET" 
+							expected-response-type="java.lang.String" />
+
+
+	<int:json-to-object-transformer
+		input-channel="getPersonChannel_response" 
+		type="model.Person" />
+</beans>
